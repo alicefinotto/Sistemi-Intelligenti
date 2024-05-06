@@ -1,0 +1,177 @@
+# GLOBAL DECLARATIONS
+
+VARIABILI = ["Sistemi Elettronici", "Componenti Elettronici", "Big Data", "CyberSecurity", "Robotica", "User Experience"]
+AULE = ["N1", "N2", "N3", "N4", "N5", "N6", "N7", "MLAB1", "MLAB2"]
+ORARI = ["8:00", "8:30", "9:00","9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", 
+         "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"]
+
+# DEFINIZIONE DEI VINCOLI: NESSUN ESAME SI PUO' SVOLGERE LO STESSO GIORNO
+
+VINCOLI = [
+    ("Sistemi Elettronici", "Componenti Elettronici"),
+    ("Sistemi Elettronici", "Big Data"),
+    ("Sistemi Elettronici", "CyberSecurity"),
+    ("Sistemi Elettronici", "Robotica"),
+    ("Sistemi Elettronici", "User Experience"),
+    ("Componenti Elettronici", "Big Data"),
+    ("Componenti Elettronici", "CyberSecurity"),
+    ("Componenti Elettronici", "Robotica"),
+    ("Componenti Elettronici", "User Experience"),
+    ("Big Data", "CyberSecurity"),
+    ("Big Data", "Robotica"),
+    ("Big Data", "User Experience"),
+    ("CyberSecurity", "Robotica"),
+    ("CyberSecurity", "User Experience"),
+    ("Robotica", "User Experience"),
+]
+
+# DEFINIZIONE DEL DOMINIO: GIORNI FERIALI DI GENNAIO 2024
+
+DOMINIO = [
+    "2/01/2024",  
+    "3/01/2024",  
+    "4/01/2024",  
+    "5/01/2024",  
+    "8/01/2024",  
+    "9/01/2024",  
+    "10/01/2024",  
+    "11/01/2024",  
+    "12/01/2024",  
+    "15/01/2024",  
+    "16/01/2024",  
+    "17/01/2024",  
+    "18/01/2024",  
+    "19/01/2024",  
+    "22/01/2024",  
+    "23/01/2024",  
+    "24/01/2024",  
+    "25/01/2024",  
+    "26/01/2024",  
+    "29/01/2024",  
+    "30/01/2024",  
+    "31/01/2024"
+] 
+
+# BACKTRACK FUNCTION IMPLEMENTATION 
+
+def backtrack(assegnazione, date_disponibili, date_assegnate=set()):
+    global VARIABILI, VINCOLI
+    
+    if len(assegnazione) == len(VARIABILI):  # Check if assignment is complete
+        return assegnazione
+   
+    temp_var = sel_var_libera(assegnazione)  # Selecting a new un-assigned variable's index
+    
+    for value in date_disponibili:  # Use only the available dates for backtracking
+        if value not in date_assegnate:  # Check if the date is not already assigned
+            ass = assegnazione.copy()
+            ass[temp_var] = value
+            new_dates = date_assegnate.copy()
+            new_dates.add(value)
+            if consistent(ass):  # Check if assignment is consistent
+                risultato = backtrack(ass, date_disponibili, new_dates)  # Recursive function
+                
+                if risultato is not None:
+                    return risultato
+    return None
+    
+  
+# Selects Unassigned Variable 
+
+def sel_var_libera(assegnazione):
+    for i in VARIABILI:
+        if i not in assegnazione:  # Checks and returns the variable not currently assigned
+            return i  # Returns the index
+    return None
+
+# Consistent Function 
+
+def consistent(assegnazione):
+    global VINCOLI
+    
+    for (i, j) in VINCOLI:                        
+        if i not in assegnazione or j not in assegnazione:   # If the selected value hasn't been assigned yet
+            continue
+        
+        if i != j and assegnazione[i] == assegnazione[j]:    # If two exams have the same date
+            return False
+    
+    return True
+
+def main():
+    global VARIABILI, VINCOLI, DOMINIO, AULE, ORARI
+    
+    # Print available variables (courses)
+    print("Corsi primo semestre-terzo anno-ITID:")
+    for idx, corso in enumerate(VARIABILI, start=1):
+        print(f"{idx}. {corso}")
+    
+    # Input from the user
+    num_corsi = int(input("Digita il numero di corsi che vuoi inserire: "))
+    
+    # Dictionary to store course, exam date, classroom, and time information
+    info_corso = {}
+    
+    # Taking input for courses, professors, and desired exam dates
+    for i in range(num_corsi):
+        while True:
+            nome_corso = input(f"Inserisci il nome del corso {i + 1}: ")
+            if nome_corso in VARIABILI:
+                break
+            else:
+                print("Nome corso non valido, inserire un corso di quelli sovraelencati.")
+        
+        while True:
+            data_esame = input(f"Inserire la data desiderata {nome_corso} (DD/MM/YYYY): ")
+            if data_esame in DOMINIO:
+                if data_esame in info_corso.values():
+                    print(f"Non è possibile fissare più esami nello stesso giorno {data_esame}. Perfavore, scegliere una data diversa.")
+                    continue
+                
+                break
+            else:
+                print("La data deve essere in gennaio 2024.")
+        
+        while True:
+            aula = input(f"Inserire l'aula desiderata per il corso {nome_corso} (N1, N2, ..., MLAB1, MLAB2): ")
+            if aula in AULE:
+                break
+            else:
+                print("Aula non valida. Inserisci un'aula tra quelle disponibili.")
+        
+        while True:
+            ora = input(f"Inserire l'orario desiderato per il corso {nome_corso} (HH:MM): ")
+            if ora in ORARI:
+                break
+            else:
+                print("Orario non valido. Inserisci un orario tra quelli disponibili.")
+        
+        info_corso[nome_corso] = {'data': data_esame, 'aula': aula, 'ora': ora}
+    
+    # Remove fixed dates from the domain values
+    date_disponibili = [data for data in DOMINIO if data not in info_corso.values()]
+    
+    # Remove the date of the first exam from the constraints
+    if len(info_corso) > 0:
+        data_primo_esame = next(iter(info_corso.values()))['data']
+        VINCOLI = [(corso, data) for corso, data in VINCOLI if data != data_primo_esame]
+    
+    # Generating constraints (no two exams on the same day)
+    for corso, data in info_corso.items():
+        for altra_data in date_disponibili:
+            VINCOLI.append((corso, altra_data))
+    
+    assegnazione=nome_corso
+    date_assegnate=data_esame
+    # Finding solution
+    soluzione = backtrack(dict(), date_disponibili)
+    
+    # Printing solution with course, professor, exam date, classroom, and time
+    for corso, data in soluzione.items():
+        # Use the fixed date if available, otherwise use the assigned date
+        data_esame = info_corso.get(corso, data)  
+        print(f"Corso: {corso}, Data esame: {data_esame}")
+
+# Tell python to run main method
+if __name__ == "__main__":
+    main()

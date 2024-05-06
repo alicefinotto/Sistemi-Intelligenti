@@ -1,0 +1,187 @@
+import tkinter as tk
+from tkinter import simpledialog, messagebox
+
+# DICHIARAZIONI GLOBALI
+
+VARIABILI = ["Sistemi Elettronici", "Componenti Elettronici", "Big Data", "CyberSecurity", "Robotica", "User Experience"]
+AULE = ["N1", "N2", "N3", "N4", "N5", "N6", "N7", "MLAB1", "MLAB2"]
+ORARI = ["8:00", "8:30", "9:00","9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", 
+         "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"]
+
+# DEFINIZIONE DEI VINCOLI: NESSUN ESAME SI PUO' SVOLGERE LO STESSO GIORNO
+VINCOLI = [
+    ("Sistemi Elettronici", "Componenti Elettronici"),
+    ("Sistemi Elettronici", "Big Data"),
+    ("Sistemi Elettronici", "CyberSecurity"),
+    ("Sistemi Elettronici", "Robotica"),
+    ("Sistemi Elettronici", "User Experience"),
+    ("Componenti Elettronici", "Big Data"),
+    ("Componenti Elettronici", "CyberSecurity"),
+    ("Componenti Elettronici", "Robotica"),
+    ("Componenti Elettronici", "User Experience"),
+    ("Big Data", "CyberSecurity"),
+    ("Big Data", "Robotica"),
+    ("Big Data", "User Experience"),
+    ("CyberSecurity", "Robotica"),
+    ("CyberSecurity", "User Experience"),
+    ("Robotica", "User Experience"),
+]
+
+# DEFINIZIONE DEL DOMINIO: GIORNI FERIALI DI GENNAIO 2024
+DOMINIO = [
+    "2/01/2024",  
+    "3/01/2024",  
+    "4/01/2024",  
+    "5/01/2024",  
+    "8/01/2024",  
+    "9/01/2024",  
+    "10/01/2024",  
+    "11/01/2024",  
+    "12/01/2024",  
+    "15/01/2024",  
+    "16/01/2024",  
+    "17/01/2024",  
+    "18/01/2024",  
+    "19/01/2024",  
+    "22/01/2024",  
+    "23/01/2024",  
+    "24/01/2024",  
+    "25/01/2024",  
+    "26/01/2024",  
+    "29/01/2024",  
+    "30/01/2024",  
+    "31/01/2024"
+] 
+
+#INTERFACCIA GRAFICA
+
+#RICHIESTA NUMERO DI ESAMI DA FISSARE
+
+def chiedi_numero_esami():
+    num_esami = simpledialog.askinteger("Sessione gennaio 2024-3° anno-ITID", "Quanti esami vuoi fissare?", parent=root)
+    if num_esami is not None:
+        mostra_input_esami(num_esami)
+
+
+#RICHIESTA INFORMAZIONI SUI CORSI/ESAMI
+
+def mostra_input_esami(num_esami):
+    informazioni = []  #Memorizza le informazioni sui corsi
+
+    #Aggiungi la lista degli esami nella finestra di dialogo
+
+    elenco_esami = "\n".join(VARIABILI)
+    messagebox.showinfo("Elenco Esami", f"Elenco Esami:\n{elenco_esami}")
+
+    for i in range(num_esami):
+        info_corso = {}  #Memorizza le informazioni su un corso
+
+        info_corso["nome"] = simpledialog.askstring("Nome Corso", f"Inserisci il nome del corso {i + 1}:", parent=root)
+        while info_corso["nome"] not in VARIABILI:
+            messagebox.showwarning("Input non valido", "Il nome del corso non è valido. Inserisci uno dei corsi disponibili.")
+            info_corso["nome"] = simpledialog.askstring("Nome Corso", f"Inserisci il nome del corso {i + 1}:", parent=root)
+
+        info_corso["data"] = simpledialog.askstring("Data Esame", f"Inserisci la data desiderata (fine settimana e festività esclusi) per {info_corso['nome']} (DD/MM/YYYY):", parent=root)
+        while info_corso["data"] not in DOMINIO:
+            messagebox.showwarning("Input non valido", "La data inserita non è valida. Inserisci una data tra quelle disponibili.")
+            info_corso["data"] = simpledialog.askstring("Data Esame", f"Inserisci la data desiderata per {info_corso['nome']} (DD/MM/YYYY):", parent=root)
+
+        info_corso["aula"] = simpledialog.askstring("Aula Esame", f"Inserisci l'aula desiderata per {info_corso['nome']}: (N1, N2, N3, N4, N5, N6, N7 MLAB1, MLAB2)", parent=root)
+        while info_corso["aula"] not in AULE:
+            messagebox.showwarning("Input non valido", "L'aula inserita non è valida. Inserisci un'aula tra quelle disponibili.")
+            info_corso["aula"] = simpledialog.askstring("Aula Esame", f"Inserisci l'aula desiderata per {info_corso['nome']}: (N1, N2, N3, N4, N5, N6, N7 MLAB1, MLAB2)", parent=root)
+
+        info_corso["ora"] = simpledialog.askstring("Orario Esame", f"Inserisci l'orario desiderato (8:00-17:00) per {info_corso['nome']}: (HH:MM)", parent=root)
+        while info_corso["ora"] not in ORARI:
+            messagebox.showwarning("Input non valido", "L'orario inserito non è valido. Inserisci un orario tra quelli disponibili.")
+            info_corso["ora"] = simpledialog.askstring("Orario Esame", f"Inserisci l'orario desiderato per {info_corso['nome']}: (HH:MM)", parent=root)
+
+        informazioni.append(info_corso)
+
+    #CONTROLLA CHE 'infromazioni' CONTENGA DIZIONARI PRIMA DI PASSARLI ALLA FUNZIONE
+
+    if all(isinstance(info, dict) for info in informazioni):
+        schedula_esami(informazioni)
+    else:
+        messagebox.showerror("Errore", "Si è verificato un errore nei dati inseriti.")
+
+def schedula_esami(info_corsi):
+    date_disponibili = [data for data in DOMINIO if data not in [info['data'] for info in info_corsi]]
+
+    #RIMOZIONE DATE FISSATE DAI VINCOLI
+
+    if len(info_corsi) > 0:
+        data_primo_esame = info_corsi[0]['data']
+        VINCOLI[:] = [(corso, data) for corso, data in VINCOLI if data != data_primo_esame]
+
+    #GENERAZIONE VINCOLI-->NESSUN ESAME LO STESSO GIORNO
+
+    for corso_info in info_corsi:
+        for altra_data in date_disponibili:
+            VINCOLI.append((corso_info['nome'], altra_data))
+
+    assegnazione = {info['nome']: {'data': info['data'], 'aula': info['aula'], 'ora': info['ora']} for info in info_corsi}
+    date_assegnate = set([info['data'] for info in info_corsi])
+
+    #SOLUZIONE COL BACKTRACKING
+
+    soluzione = backtrack(assegnazione, date_disponibili, date_assegnate)
+
+    #STAMPA DELLA SOLUZIONE(CORSO, DATA, AULA E ORA)
+    output = ""
+    for corso, data in soluzione.items():
+        if isinstance(data, dict):
+         output += f"Corso: {corso}, Data esame: {data['data']}, Aula: {data['aula']}, Ora: {data['ora']}\n"
+        else :
+            output+=f"Corso:{corso}, Data esame: {data}\n"
+    messagebox.showinfo("Risultato", output)
+
+    #ALGORITMO DI BACKTRACKING
+
+def backtrack(assegnazione, date_disponibili, date_assegnate, assegnazioni=set()):
+    global VARIABILI, VINCOLI
+
+    if len(assegnazione) == len(VARIABILI):  #Controlla se l'assegnazione è completa
+        return assegnazione
+
+    temp_var = sel_var_libera(assegnazione)  #Seleziona un indice di variabile non assegnato
+
+    for value in date_disponibili:  #Utilizza solo le date disponibili per il backtracking
+        if value not in date_assegnate:  #Controlla se la data non è già assegnata
+            ass = assegnazione.copy()
+            ass[temp_var] = value
+            new_dates = set(date_assegnate)
+            new_dates.add(value)
+            if consistent(ass):  #Controlla se l'assegnazione è consistente
+                risultato = backtrack(ass, date_disponibili, new_dates, assegnazioni)  #Funzione ricorsiva
+
+                if risultato is not None:
+                    return risultato
+    return None
+
+def sel_var_libera(assegnazione):
+    for i in VARIABILI:
+        if i not in assegnazione:  #Controlla e restituisce la variabile attualmente non assegnata
+            return i  #Restituisce l'indice
+    return None
+
+#CAPIRE SE UN'ASSEGNAZIONE è CONSISTENTE
+
+def consistent(assegnazione):
+    global VINCOLI
+
+    for (i, j) in VINCOLI:
+        if i not in assegnazione or j not in assegnazione:   #Se il valore selezionato non è stato ancora assegnato
+            continue
+
+        if i != j and assegnazione[i] == assegnazione[j]:    #Se due esami hanno la stessa data
+            return False
+
+    return True
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.withdraw()  #Nasconde la finestra principale di Tkinter
+
+    chiedi_numero_esami()
+    root.mainloop()
